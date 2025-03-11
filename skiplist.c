@@ -47,6 +47,19 @@ Node *add_layer(const Node *skiplist){
     return new_skiplist;
 }
 
+// Untested !!!
+Node *search(const Node *skiplist, int key){
+    Node *curr = (Node *)skiplist;
+    while (curr){
+        if (curr->next && curr->next->key == key) return curr->next;
+        if (curr->next && curr->next->key < key) curr = curr->next;
+        else curr = curr->below;
+    }
+    return NULL;
+}
+
+
+
 void print_node(const Node *node){
     printf("[%d] Node value: [%d]", node->rank, node->key);
 }
