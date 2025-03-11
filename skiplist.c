@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 
 typedef struct Node{
     struct Node *below;
@@ -26,6 +27,7 @@ Node *empty(){
     return create_node(INT_MIN, 0);
 }
 
+// Check this
 Node *add_layer(const Node *skiplist){
     Node *old_skiplist = (Node *)skiplist;
     Node *new_skiplist = create_node(old_skiplist->key, old_skiplist->rank+1);
@@ -58,7 +60,31 @@ Node *search(const Node *skiplist, int key){
     return NULL;
 }
 
+Node *insert(const Node *skiplist, int elements, int key){
+    Node *new_node = create_node(key, 0);
+    Node *new_skiplist = (Node *)skiplist;
+    // can replace with a nice bit trick of (x ^ x--) == 0 (for powers of 2)
+    if (get_max_layer(elements+1) != get_max_layer(elements)){
+        new_skiplist = add_layer(skiplist);
+    }
 
+    Node **history = (Node **)calloc(new_skiplist->rank+1, sizeof(Node *));
+    Node *curr = (Node *)new_skiplist;
+    while (curr){
+        if (curr->next && curr->next->key == key) break; return curr->next;
+        if (curr->next && curr->next->key < key) curr = curr->next;
+        else curr = curr->below;
+    }
+
+    while (curr){
+        history[curr->rank] = curr;
+        curr = curr->below;
+    }
+
+
+
+    return NULL;
+}
 
 void print_node(const Node *node){
     printf("[%d] Node value: [%d]", node->rank, node->key);
@@ -80,10 +106,28 @@ void print_skiplist(const Node *skiplist){
 }
 
 int main(){
+
+    srand(time(NULL));
+
     Node *skiplist = empty();
+    Node *a = create_node(10, 0);
+    Node *b = create_node(20, 0);
+    Node *c = create_node(30, 0);
+    skiplist->next = a;
+    a->next = b;
+    b->next = c;
+
+    
     print_skiplist(skiplist);
+
     skiplist = add_layer(skiplist);
     skiplist = add_layer(skiplist);
     print_skiplist(skiplist);
+
+    Node *search_result = search(skiplist, 35);
+    printf("Search result\n");
+    if (!search_result) printf("No result\n");
+    else print_node(search_result);
+
     return 0;
 }
