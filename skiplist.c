@@ -43,6 +43,12 @@ int get_max_layer(int elements){
     return (int)log2(elements)+1;
 }
 
+int is_power_of_two(int x){
+    if (x==0) return 1;
+    if (x < 0) return 0;
+    return ((x & (~(x-1))) == x);
+}
+
 Node *empty(){
     return create_node(INT_MIN, 0);
 }
@@ -82,6 +88,7 @@ Node *search(const Node *skiplist, int key){
 Node *insert(const Node *skiplist, int elements, int key){
     Node *new_skiplist = (Node *)skiplist;
     // can replace with a nice bit trick of (x ^ x--) == 0 (for powers of 2)
+    //if (is_power_of_two(elements+1)){???
     if (get_max_layer(elements+1) != get_max_layer(elements)){
         new_skiplist = add_layer(skiplist);
     }
@@ -107,18 +114,6 @@ Node *insert(const Node *skiplist, int elements, int key){
         curr = curr->below;
     }
 
-    /*
-    printf("Printing search history\n");
-    for (int layer=0; layer<=new_skiplist->rank; layer++){
-        printf("Layer %d: ", layer);
-        print_node(history[layer]);
-        printf(" -> ");
-        if (history[layer]->next) print_node(history[layer]->next);
-        else printf("NULL");
-        printf("\n");
-    }
-    */
-
     Node *prev = NULL;
     for (int layer=0; layer<=new_skiplist->rank; layer++){
         int promote = (rand() % 2) || (layer == 0);
@@ -131,10 +126,58 @@ Node *insert(const Node *skiplist, int elements, int key){
         new_node->below = prev;
         prev = new_node;
     }
-    
+
+    free(history);
     return new_skiplist;
 }
 
+Node *remove_layer(const Node *skiplist){
+    Node *new_skiplist = skiplist->below;
+    Node *old_skiplist = (Node *)skiplist;
+    while (old_skiplist){
+        Node *prev = old_skiplist;
+        old_skiplist = old_skiplist->next;
+        free(prev);
+    }
+    return new_skiplist;
+}
+
+Node *delete(const Node *skiplist, int elements, int key){
+    Node *curr = (Node *)skiplist;
+    while (curr){
+        if (curr->next && curr->next->key == key){
+            Node *old_node = curr->next;
+            curr->next = curr->next->next;
+            free(old_node);
+            curr = curr->below;
+            continue;
+        }
+        if (curr->next && curr->next->key < key) curr = curr->next;
+        else curr = curr->below;
+    }
+
+    Node *new_skiplist = (Node *)skiplist;
+    if (get_max_layer(elements-1) != get_max_layer(elements)){
+        new_skiplist = remove_layer(skiplist);
+    }    
+
+    return new_skiplist;
+}
+
+void free_skiplist(Node *skiplist){
+    Node *curr = (Node *)skiplist;
+    while (curr){    
+        Node *curr_copy = curr->next;
+        while (curr_copy){
+            Node *tmp = curr_copy->next;
+            free(curr_copy);
+            curr_copy = tmp;
+        }
+        Node *tmp = curr->below;
+        free(curr);
+        curr = tmp;
+    }
+}
 
 int main(){
 
@@ -145,30 +188,9 @@ int main(){
     }
     print_skiplist(skiplist);
 
-    /*
-    SHOULD MAKE SOMETHING WHERE I CAN READ COMMANDS FROM A TEXT FILE RATHER THAN RECOMPILE
-    Node *skiplist = empty();
-    Node *a = create_node(10, 0);
-    Node *b = create_node(20, 0);
-    Node *c = create_node(30, 0);
-    skiplist->next = a;
-    a->next = b;
-    b->next = c;
-
+    skiplist = delete(skiplist, 5, 2);
+    skiplist = delete(skiplist, 4, 1);
     print_skiplist(skiplist);
-
-    skiplist = add_layer(skiplist);
-    skiplist = add_layer(skiplist);
-    print_skiplist(skiplist);
-
-    Node *search_result = search(skiplist, 35);
-    printf("Search result\n");
-    if (!search_result) printf("No result\n");
-    else print_node(search_result);
-
-    skiplist = insert(skiplist, 3, 25);
-    print_skiplist(skiplist);
-    */
-
+    free_skiplist(skiplist);
     return 0;
 }
