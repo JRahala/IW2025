@@ -10,6 +10,26 @@ typedef struct Node{
     int rank;    
 } Node;
 
+
+void print_node(const Node *node){
+    printf("(%d) Node value: [%d]", node->rank, node->key);
+}
+
+void print_skiplist(const Node *skiplist){
+    printf("Printing Skiplist\n");
+    Node *curr = (Node *)skiplist;
+    while (curr){
+        Node *curr_copy = curr;
+        while (curr_copy){
+            print_node(curr_copy);
+            printf(" -> ");
+            curr_copy = curr_copy->next;
+        }
+        printf("NULL\n");
+        curr = curr->below;
+    }
+}
+
 Node *create_node(int key, int rank){
     Node *new_node = (Node *)malloc(sizeof(Node));
     new_node->below = NULL;
@@ -49,7 +69,6 @@ Node *add_layer(const Node *skiplist){
     return new_skiplist;
 }
 
-// Untested !!!
 Node *search(const Node *skiplist, int key){
     Node *curr = (Node *)skiplist;
     while (curr){
@@ -61,7 +80,6 @@ Node *search(const Node *skiplist, int key){
 }
 
 Node *insert(const Node *skiplist, int elements, int key){
-    Node *new_node = create_node(key, 0);
     Node *new_skiplist = (Node *)skiplist;
     // can replace with a nice bit trick of (x ^ x--) == 0 (for powers of 2)
     if (get_max_layer(elements+1) != get_max_layer(elements)){
@@ -71,9 +89,17 @@ Node *insert(const Node *skiplist, int elements, int key){
     Node **history = (Node **)calloc(new_skiplist->rank+1, sizeof(Node *));
     Node *curr = (Node *)new_skiplist;
     while (curr){
-        if (curr->next && curr->next->key == key) break; return curr->next;
-        if (curr->next && curr->next->key < key) curr = curr->next;
-        else curr = curr->below;
+        if (curr->next && curr->next->key == key){
+            curr = curr->next;
+            break;
+        }
+        if (curr->next && curr->next->key < key){
+            curr = curr->next;
+        }
+        else{
+            history[curr->rank] = curr;
+            curr = curr->below;
+        }
     }
 
     while (curr){
@@ -81,34 +107,46 @@ Node *insert(const Node *skiplist, int elements, int key){
         curr = curr->below;
     }
 
-
-
-    return NULL;
-}
-
-void print_node(const Node *node){
-    printf("[%d] Node value: [%d]", node->rank, node->key);
-}
-
-void print_skiplist(const Node *skiplist){
-    printf("Printing Skiplist\n");
-    Node *curr = (Node *)skiplist;
-    while (curr){
-        Node *curr_copy = curr;
-        while (curr_copy){
-            print_node(curr_copy);
-            printf(" -> ");
-            curr_copy = curr_copy->next;
-        }
-        printf("NULL\n");
-        curr = curr->below;
+    /*
+    printf("Printing search history\n");
+    for (int layer=0; layer<=new_skiplist->rank; layer++){
+        printf("Layer %d: ", layer);
+        print_node(history[layer]);
+        printf(" -> ");
+        if (history[layer]->next) print_node(history[layer]->next);
+        else printf("NULL");
+        printf("\n");
     }
+    */
+
+    Node *prev = NULL;
+    for (int layer=0; layer<=new_skiplist->rank; layer++){
+        int promote = (rand() % 2) || (layer == 0);
+        if (!promote) break;
+        
+        Node *new_node = create_node(key, layer);
+        Node *old_next = history[layer]->next;
+        history[layer]->next = new_node;
+        new_node->next = old_next;
+        new_node->below = prev;
+        prev = new_node;
+    }
+    
+    return new_skiplist;
 }
+
 
 int main(){
 
     srand(time(NULL));
+    Node *skiplist = empty();
+    for (int elements = 0; elements < 5; elements++){
+        skiplist = insert(skiplist, elements, elements+1);
+    }
+    print_skiplist(skiplist);
 
+    /*
+    SHOULD MAKE SOMETHING WHERE I CAN READ COMMANDS FROM A TEXT FILE RATHER THAN RECOMPILE
     Node *skiplist = empty();
     Node *a = create_node(10, 0);
     Node *b = create_node(20, 0);
@@ -117,7 +155,6 @@ int main(){
     a->next = b;
     b->next = c;
 
-    
     print_skiplist(skiplist);
 
     skiplist = add_layer(skiplist);
@@ -128,6 +165,10 @@ int main(){
     printf("Search result\n");
     if (!search_result) printf("No result\n");
     else print_node(search_result);
+
+    skiplist = insert(skiplist, 3, 25);
+    print_skiplist(skiplist);
+    */
 
     return 0;
 }
